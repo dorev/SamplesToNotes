@@ -1,0 +1,6 @@
+build/
+bin/
+
+# Force FFTW binaries inclusion
+!external/**/*.dll
+!external/**/*.lib

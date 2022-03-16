@@ -38,7 +38,7 @@ AudioFft::~AudioFft()
     FftwDestroyPlan(_plan);
 }
 
-FftwReal* AudioFft::GetInputBuffer()
+FftwReal* AudioFft::GetInputBufferPointer()
 {
     return _inputBuffer;
 }
@@ -48,7 +48,7 @@ int AudioFft::GetInputBufferSize() const
     return InputBufferSize;
 }
 
-FftwComplex* AudioFft::GetOutputBuffer() const
+FftwComplex* AudioFft::GetOutputBufferPointer() const
 {
     return _outputBuffer;
 }
@@ -70,22 +70,27 @@ void AudioFft::Execute(FftwReal* buffer)
     FftwExecuteDft(_plan, buffer, _outputBuffer);
 }
 
-std::vector<BinFrequencyValue> AudioFft::GetHighestBins(size_t resultSize) const
+BinFrequencyValue AudioFft::GetTopBin() const
 {
-    std::vector<BinFrequencyValue> results(resultSize, {0, 0, 0});
+    return GetTopBins(1)[0];
+}
+
+std::vector<BinFrequencyValue> AudioFft::GetTopBins(size_t topResults) const
+{
+    std::vector<BinFrequencyValue> results(topResults, {0, 0, 0});
 
     // Scan whole output buffer
     for (size_t bin = 0; bin < OutputBufferSize; ++bin)
     {
         // Compare with each saved result
-        for (size_t i = 0; i < resultSize; ++i)
+        for (size_t i = 0; i < topResults; ++i)
         {
             FftwReal value = _outputBuffer[bin][0];
             BinFrequencyValue& result = results[i];
             if (value > result.value)
             {
                 // Shift right lower values
-                for (size_t j = resultSize - 1; j > i; --j)
+                for (size_t j = topResults - 1; j > i; --j)
                     results[j] = results[j - 1];
 
                 // Insert higher result

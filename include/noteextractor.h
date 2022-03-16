@@ -17,6 +17,7 @@ struct NoteValue
 class NoteExtractor
 {
 public:
+	ONLY_EXPLICIT_CONSTRUCTOR(NoteExtractor);
 	NoteExtractor(FftwReal samplingRate, FftwReal a4Frequency = 440);
 	size_t GetFftWindowSize() const;
 	std::vector<NoteValue> GetNotesFromSamples(FftwReal* sampleBuffer, size_t bufferSize, size_t resultSize);

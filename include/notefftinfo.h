@@ -2,6 +2,7 @@
 
 #include  <vector>
 #include "fftwutils.h"
+#include "defines.h"
 
 namespace SamplesToNotes
 {
@@ -10,7 +11,9 @@ class NoteFftInfo
 {
 public:
     static const size_t NoteLimit = 128;
-
+   
+public:
+    ONLY_EXPLICIT_CONSTRUCTOR(NoteFftInfo);
     NoteFftInfo(size_t N, FftwReal samplingRate, FftwReal a4Frequency = 440);
     const std::vector<size_t>& GetNoteFftBins() const;
     const std::vector<FftwReal>& GetNoteFrequencies() const;

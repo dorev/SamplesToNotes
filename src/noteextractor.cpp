@@ -8,7 +8,7 @@ NoteExtractor::NoteExtractor(FftwReal samplingRate, FftwReal a4Frequency)
 	, _a4Frequency(a4Frequency)
 	, _audioFft(_samplingRate)
 	, _noteFftInfo(AudioFft::N, _samplingRate, _a4Frequency)
-	, _fftOutputBuffer(_audioFft.GetOutputBuffer())
+	, _fftOutputBuffer(_audioFft.GetOutputBufferPointer())
 {
 }
 

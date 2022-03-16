@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fftw3.h>
-#include "definitions.h"
+#include "defines.h"
 
 namespace SamplesToNotes
 {

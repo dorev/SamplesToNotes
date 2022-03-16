@@ -7,7 +7,7 @@ namespace SamplesToNotes
 FftwReal FrequencyOfNote(size_t note, FftwReal a4Frequency)
 {
     static const FftwReal a = pow(FFTW_REAL(2), (FFTW_REAL(1)/ FFTW_REAL(12)));
-    FftwReal delta = static_cast<FftwReal>(note - 57); // A4
+    FftwReal delta = static_cast<FftwReal>(FftwReal(note) - FFTW_REAL(57)); // A4
     return a4Frequency * pow(a, delta);
 }
 

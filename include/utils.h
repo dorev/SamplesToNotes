@@ -25,5 +25,4 @@ static const char* NoteNames[12] =
 	"B"
 };
 
-
 }

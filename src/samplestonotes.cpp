@@ -1,9 +1,9 @@
-#include "noteextractor.h"
+#include "samplestonotes.h"
 
 namespace SamplesToNotes
 {
 
-NoteExtractor::NoteExtractor(size_t fftWindowSize, FftwReal samplingRate, FftwReal a4Frequency)
+SamplesToNotes::SamplesToNotes(size_t fftWindowSize, FftwReal samplingRate, FftwReal a4Frequency)
 	: _fftWindowSize(fftWindowSize)
 	, _samplingRate(samplingRate)
 	, _a4Frequency(a4Frequency)
@@ -13,12 +13,12 @@ NoteExtractor::NoteExtractor(size_t fftWindowSize, FftwReal samplingRate, FftwRe
 {
 }
 
-size_t NoteExtractor::GetFftWindowSize() const
+size_t SamplesToNotes::GetFftWindowSize() const
 {
 	return _fftWindowSize;
 }
 
-std::vector<NoteValue> NoteExtractor::GetNotesFromSamples(FftwReal* sampleBuffer, size_t bufferSize, size_t resultSize)
+std::vector<NoteValue> SamplesToNotes::GetNotesFromSamples(FftwReal* sampleBuffer, size_t bufferSize, size_t resultSize)
 {
 	if (bufferSize < _fftWindowSize)
 		throw "bufferSize should be greater or equal to the fftWindowSize";

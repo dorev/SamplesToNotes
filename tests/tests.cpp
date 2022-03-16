@@ -97,91 +97,85 @@ TEST_F(SamplesToNotesTests, DISABLED_Csv440)
     FftwDestroyPlan(plan);
 }
 
-
-
-
-
-
-
-
-
 const std::vector<FftwReal> standardSampleRates{ 44100, 48000, 88200, 96000 };
+const std::vector<size_t> standardFftWindowSizes{ 1024, 4096, 8192, 16384, 32768, 65536 };
 
 TEST_F(SamplesToNotesTests, FftAllSingleNotePrecision)
 {
-    const size_t bufferSize = AudioFft::WindowSize;
-    std::unique_ptr<FftwReal> bufferHolder(new FftwReal[bufferSize]);
-    FftwReal* buffer = bufferHolder.get();
-
-    for (const auto& samplingRate : standardSampleRates)
+    for (const size_t fftWindowSize : standardFftWindowSizes)
     {
-        COUT_GTEST 
-            << "======================================"
-            << "Sampling rate: " << samplingRate
-            << "======================================" << ENDL;
-
-        AudioFft fft(samplingRate);
-        NoteFftInfo noteInfo(AudioFft::WindowSize, samplingRate);
-        size_t note = 0;
-
-        for (const FftwReal& noteFrequency : noteInfo.GetNoteFrequencies())
+        for (const FftwReal samplingRate : standardSampleRates)
         {
-            COUT_GTEST << "Note " << note << " (" << NoteNames[note % 12] << (note / 12) << ")" << "\tNote frequency: ";
-            COUT << noteFrequency;
-            
-            // Run FFT
-            FftwReal* inputBuffer = fft.GetInputBufferPointer();
-            FftwComplex* outputBuffer = fft.GetOutputBufferPointer();
-            GenerateSinWave(inputBuffer, bufferSize, noteFrequency, samplingRate);
-            fft.Execute();
-            FftwReal fftFrequency = fft.GetTopBin().frequency;
-            COUT << "\tFFT frequency: " << std::setprecision(5) << fftFrequency;
+            COUT_GTEST << "========================================================================================================================" << ENDL;
+            COUT_GTEST << "FFT SIZE: " << fftWindowSize << "\tSAMPLING RATE : " << samplingRate << ENDL;
+            COUT_GTEST << "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv" << ENDL;
 
-            // Get difference between the desired note frequency and the frequency detected by FFT
-            FftwReal difference = DifferencePercentage(noteFrequency, fftFrequency);
-            COUT << "\tDifference: " << std::setprecision(5) << difference << "%";
+            AudioFft fft(fftWindowSize, samplingRate);
+            NoteFftInfo noteInfo(fftWindowSize, samplingRate);
+            size_t note = 0;
 
-            // FFT frequency between the note and the next (except for last note)
-            FftwReal deltaSign = fftFrequency < noteFrequency ? FftwReal(-1) : FftwReal(1);
-            FftwReal semitonePrecision(0);
-            if (deltaSign > 0 && note < (NoteFftInfo::NoteLimit - 1))
+            for (const FftwReal noteFrequency : noteInfo.GetNoteFrequencies())
             {
-                FftwReal nextNoteFrequency = noteInfo.GetNoteFrequencies()[note + 1];
-                semitonePrecision = (nextNoteFrequency - fftFrequency) / (nextNoteFrequency - noteFrequency) * FftwReal(100);
-            }
-            // FFT frequency between the note and the previous  (except for first note)
-            else if(deltaSign <= 0 && note > 0)
-            {
-                FftwReal previousNoteFrequency = noteInfo.GetNoteFrequencies()[note - 1];
-                semitonePrecision = (fftFrequency - previousNoteFrequency) / (noteFrequency - previousNoteFrequency) * FftwReal(100);
-            }
-            else
-            {
-                COUT << "\tUnable to calculate semitone precision" << ENDL;
+                COUT_GTEST << "Note " << note << " (" << NoteNames[note % 12] << (note / 12) << ")" << "\tNote frequency: ";
+                COUT << noteFrequency;
+
+                // Run FFT
+                FftwReal* inputBuffer = fft.GetInputBufferPointer();
+                FftwComplex* outputBuffer = fft.GetOutputBufferPointer();
+                GenerateSinWave(inputBuffer, fftWindowSize, noteFrequency, samplingRate);
+                fft.Execute();
+                FftwReal fftFrequency = fft.GetTopBin().frequency;
+                COUT << "\tFFT frequency: " << std::setprecision(5) << fftFrequency;
+
+                // Get difference between the desired note frequency and the frequency detected by FFT
+                FftwReal difference = DifferencePercentage(noteFrequency, fftFrequency);
+                COUT << "\tDifference: " << std::setprecision(5) << difference << "%";
+
+                // FFT frequency between the note and the next (except for last note)
+                FftwReal deltaSign = fftFrequency < noteFrequency ? FftwReal(-1) : FftwReal(1);
+                FftwReal semitonePrecision(0);
+                if (deltaSign > 0 && note < (NoteFftInfo::NoteLimit - 1))
+                {
+                    FftwReal nextNoteFrequency = noteInfo.GetNoteFrequencies()[note + 1];
+                    semitonePrecision = (nextNoteFrequency - fftFrequency) / (nextNoteFrequency - noteFrequency) * FftwReal(100);
+                }
+                // FFT frequency between the note and the previous  (except for first note)
+                else if (deltaSign <= 0 && note > 0)
+                {
+                    FftwReal previousNoteFrequency = noteInfo.GetNoteFrequencies()[note - 1];
+                    semitonePrecision = (fftFrequency - previousNoteFrequency) / (noteFrequency - previousNoteFrequency) * FftwReal(100);
+                }
+                else
+                {
+                    COUT << "\tUnable to calculate semitone precision" << ENDL;
+                    ++note;
+                    continue;
+                }
+
+                auto precisionColor = ANSI_TXT_DFT;
+                if (semitonePrecision > 99)
+                {
+                    precisionColor = ANSI_TXT_CYA;
+                }
+                else if (semitonePrecision > 90)
+                {
+                    precisionColor = ANSI_TXT_GRN;
+                }
+                else if (semitonePrecision > 80)
+                {
+                    precisionColor = ANSI_TXT_YLW;
+                }
+                else
+                {
+                    precisionColor = ANSI_TXT_RED;
+                }
+
+                COUT << precisionColor << "  Semitone precision: " << std::setprecision(5) << semitonePrecision << "%" << ENDL;
                 ++note;
-                continue;
             }
-
-            auto precisionColor = ANSI_TXT_DFT;
-            if (semitonePrecision > 99)
-            {
-                precisionColor = ANSI_TXT_CYA;
-            }
-            else if (semitonePrecision > 90)
-            {
-                precisionColor = ANSI_TXT_GRN;
-            }
-            else if (semitonePrecision > 80)
-            {
-                precisionColor = ANSI_TXT_YLW;
-            }
-            else
-            {
-                precisionColor = ANSI_TXT_RED;
-            }
-
-            COUT << precisionColor << "  Semitone precision: " << std::setprecision(5) << semitonePrecision << "%" << ENDL;
-            ++note;
+            COUT_GTEST << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" << ENDL;
+            COUT_GTEST << "FFT SIZE: " << fftWindowSize << "\tSAMPLING RATE : " << samplingRate << ENDL;
+            COUT_GTEST << "========================================================================================================================" << ENDL;
         }
     }
 }

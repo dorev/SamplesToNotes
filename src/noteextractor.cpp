@@ -3,24 +3,25 @@
 namespace SamplesToNotes
 {
 
-NoteExtractor::NoteExtractor(FftwReal samplingRate, FftwReal a4Frequency)
-	: _samplingRate(samplingRate)
+NoteExtractor::NoteExtractor(size_t fftWindowSize, FftwReal samplingRate, FftwReal a4Frequency)
+	: _fftWindowSize(fftWindowSize)
+	, _samplingRate(samplingRate)
 	, _a4Frequency(a4Frequency)
-	, _audioFft(_samplingRate)
-	, _noteFftInfo(AudioFft::N, _samplingRate, _a4Frequency)
+	, _audioFft(_fftWindowSize, _samplingRate)
+	, _noteFftInfo(_fftWindowSize, _samplingRate, _a4Frequency)
 	, _fftOutputBuffer(_audioFft.GetOutputBufferPointer())
 {
 }
 
 size_t NoteExtractor::GetFftWindowSize() const
 {
-	return AudioFft::N;
+	return _fftWindowSize;
 }
 
 std::vector<NoteValue> NoteExtractor::GetNotesFromSamples(FftwReal* sampleBuffer, size_t bufferSize, size_t resultSize)
 {
-	if (bufferSize < AudioFft::N)
-		throw "bufferSize should be greater or equal to the FFT window";
+	if (bufferSize < _fftWindowSize)
+		throw "bufferSize should be greater or equal to the fftWindowSize";
 
 	_audioFft.Execute(sampleBuffer);
 		

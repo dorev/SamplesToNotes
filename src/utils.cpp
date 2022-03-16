@@ -16,7 +16,7 @@ FftwReal DifferencePercentage(FftwReal value1, FftwReal value2)
     return abs(value1 - value2) / ((value1 + value2) / FFTW_REAL(2)) * FFTW_REAL(100);
 }
 
-void GenerateSinWave(FftwReal* buffer, int bufferSize, FftwReal frequency, FftwReal samplingRate)
+void GenerateSinWave(FftwReal* buffer, size_t bufferSize, FftwReal frequency, FftwReal samplingRate)
 {
     FftwReal sampleDurationSeconds = FFTW_REAL(1) / samplingRate;
     for (int i = 0; i < bufferSize; ++i)

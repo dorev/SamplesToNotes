@@ -105,17 +105,18 @@ TEST_P(FftPrecisionTest, FftAllSingleNotePrecision)
     const bool verbose = false;
     FftwReal samplingRate = std::get<0>(GetParam());
     size_t fftWindowSize = std::get<1>(GetParam());
+    Stopwatch stopwatch;
 
-    FftwReal windowDuration = static_cast<FftwReal>(fftWindowSize) / samplingRate;
+    Milliseconds windowDuration = static_cast<double>(fftWindowSize) / static_cast<double>(samplingRate) * 1000.0;
     if (verbose)
     {
         COUT_GTEST << "=================================================================================================" << ENDL;
-        COUT_GTEST << "FFT SIZE: " << fftWindowSize << "\tSAMPLING RATE : " << samplingRate << " Hz\tWINDOW DURATION : " << windowDuration << " s" ENDL;
+        COUT_GTEST << "FFT SIZE: " << fftWindowSize << "\tSAMPLING RATE : " << samplingRate << " Hz\tWINDOW DURATION : " << windowDuration << " ms" ENDL;
         COUT_GTEST << "=================================================================================================" << ENDL;
     }
     else
     {
-        COUT_GTEST <<  "FFT SIZE: " << fftWindowSize << "\tSAMPLING RATE : " << samplingRate << " Hz\tWINDOW DURATION : " << windowDuration << " s" ENDL;
+        COUT_GTEST <<  "FFT SIZE: " << fftWindowSize << "\tSAMPLING RATE : " << samplingRate << " Hz\tWINDOW DURATION : " << windowDuration << " ms" ENDL;
     }
 
     AudioFft fft(fftWindowSize, samplingRate);
@@ -129,6 +130,7 @@ TEST_P(FftPrecisionTest, FftAllSingleNotePrecision)
         FftwReal fftFrequency;
         FftwReal difference;
         FftwReal semitonePrecision;
+        Milliseconds fftExecutionTime;
     };
     std::vector<Result> results;
     results.reserve(NoteFftInfo::NoteLimit);
@@ -146,7 +148,9 @@ TEST_P(FftPrecisionTest, FftAllSingleNotePrecision)
         FftwReal* inputBuffer = fft.GetInputBufferPointer();
         FftwComplex* outputBuffer = fft.GetOutputBufferPointer();
         GenerateSinWave(inputBuffer, fftWindowSize, noteFrequency, samplingRate);
+        stopwatch.Start();
         fft.Execute();
+        Milliseconds fftExecutionTime = stopwatch.Lap();
         FftwReal fftFrequency = fft.GetTopBin().frequency;
         if(verbose)
             COUT << "\tFFT frequency: " << std::setprecision(5) << fftFrequency;
@@ -191,7 +195,7 @@ TEST_P(FftPrecisionTest, FftAllSingleNotePrecision)
             COUT << precisionColor << "  Semitone precision: " << std::setprecision(5) << semitonePrecision << "%" << ENDL;
 
         // Store results
-        results.push_back({ note, noteFrequency, fftFrequency, difference, semitonePrecision });
+        results.push_back({ note, noteFrequency, fftFrequency, difference, semitonePrecision, fftExecutionTime });
         ++note;
     }
 
@@ -217,7 +221,8 @@ TEST_P(FftPrecisionTest, FftAllSingleNotePrecision)
     COUT_GTEST << "NOTE RANGE:\t"
         << lowestNoteDetected << " (" << NoteNames[lowestNoteDetected % 12] << (lowestNoteDetected / 12) << ") - "
         << highestNoteDetected << " (" << NoteNames[highestNoteDetected % 12] << (highestNoteDetected / 12) << ")\t"
-        << "COVERAGE: " << FftwReal(highestNoteDetected - lowestNoteDetected) / FftwReal(NoteFftInfo::NoteLimit) * FftwReal(100) << " %" << ENDL;
+        << "COVERAGE: " << FftwReal(highestNoteDetected - lowestNoteDetected) / FftwReal(NoteFftInfo::NoteLimit) * FftwReal(100) << " %\t" 
+        << "AVG FFT TIME: " << stopwatch.GetLapsAverage() << " ms" << ENDL;
 }
 
 TEST_F(SamplesToNotesTests, FftMultipleNote)

@@ -1,4 +1,5 @@
 #include "samplestonotes.h"
+#include <iostream>
 
 namespace SamplesToNotes
 {
@@ -8,23 +9,31 @@ SamplesToNotes::SamplesToNotes(size_t fftWindowSize, FftwReal samplingRate, Fftw
 	, _samplingRate(samplingRate)
 	, _a4Frequency(a4Frequency)
 	, _audioFft(_fftWindowSize, _samplingRate)
-	, _noteFftInfo(_fftWindowSize, _samplingRate, _a4Frequency)
-	, _fftOutputBuffer(_audioFft.GetOutputBufferPointer())
+	, _noteFftInfo(_audioFft, _a4Frequency)
+	, _fftOutputBuffer(_audioFft.GetOutputBuffer())
 {
 }
 
-size_t SamplesToNotes::GetFftWindowSize() const
+const NoteFftInfo& SamplesToNotes::GetNoteFftInfo() const
 {
-	return _fftWindowSize;
+	return _noteFftInfo;
 }
 
-std::vector<NoteValue> SamplesToNotes::GetNotesFromSamples(FftwReal* sampleBuffer, size_t bufferSize, size_t resultSize)
+FftwReal* SamplesToNotes::GetInputBuffer()
 {
-	if (bufferSize < _fftWindowSize)
-		throw "bufferSize should be greater or equal to the fftWindowSize";
+	return _audioFft.GetInputBuffer();
+}
 
-	_audioFft.Execute(sampleBuffer);
-		
+size_t SamplesToNotes::GetInputBufferSize() const
+{
+	return _audioFft.GetInputBufferSize();
+}
+
+std::vector<NoteValue> SamplesToNotes::GetNotesFromSamples(size_t resultSize)
+{
+	_audioFft.Execute();
+	auto topBins = _audioFft.GetTopBins(resultSize);
+
 	// Scan note bins from the FFT output buffer
 	std::vector<NoteValue> results(resultSize, {0, 0});
 	const std::vector<size_t>& noteBins = _noteFftInfo.GetNoteFftBins();
@@ -33,17 +42,20 @@ std::vector<NoteValue> SamplesToNotes::GetNotesFromSamples(FftwReal* sampleBuffe
 		// Compare with each saved result
 		for (size_t i = 0; i < resultSize; ++i)
 		{
-			FftwReal value = _fftOutputBuffer[noteBins[note]][0];
-			NoteValue& result = results[i];
-			if (value > result.value)
+			size_t noteBin = noteBins[note];
+			FftwReal value = _fftOutputBuffer[noteBin][0];
+			if (value > results[i].value)
 			{
 				// Shift right lower values
-				for (size_t j = resultSize - 1; j > i; --j)
-					results[j] = results[j - 1];
+				if (resultSize > 1)
+				{
+					for (size_t j = resultSize - 1; j > i; --j)
+						results[j] = results[j - 1];
+				}
 
 				// Insert higher result
-				result.note = note;
-				result.value = value;
+				results[i].note = note;
+				results[i].value = value;
 				break;
 			}
 		}

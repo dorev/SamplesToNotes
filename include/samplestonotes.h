@@ -19,8 +19,10 @@ class SamplesToNotes
 public:
 	ONLY_EXPLICIT_CONSTRUCTOR(SamplesToNotes);
 	SamplesToNotes(size_t fftWindowSize, FftwReal samplingRate, FftwReal a4Frequency = 440);
-	size_t GetFftWindowSize() const;
-	std::vector<NoteValue> GetNotesFromSamples(FftwReal* sampleBuffer, size_t bufferSize, size_t resultSize);
+	const NoteFftInfo& GetNoteFftInfo() const;
+	std::vector<NoteValue> GetNotesFromSamples(size_t resultSize);
+	FftwReal* GetInputBuffer();
+	size_t GetInputBufferSize() const;
 
 private:
 	size_t _fftWindowSize;

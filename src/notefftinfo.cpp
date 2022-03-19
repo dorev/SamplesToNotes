@@ -2,36 +2,21 @@
 
 #include "utils.h"
 #include "notefftinfo.h"
+#include "audiofft.h"
 
 namespace SamplesToNotes
 {
 
-NoteFftInfo::NoteFftInfo(size_t fftWindowSize, FftwReal samplingRate, FftwReal a4Frequency)
-    : _a4Frequency(a4Frequency)
-    , _binRange(samplingRate / fftWindowSize)
+NoteFftInfo::NoteFftInfo(const AudioFft& audioFft, FftwReal a4Frequency)
+    : _audioFft(audioFft)
+    , _a4Frequency(a4Frequency)
     , _noteFrequencies(NoteLimit)
     , _noteFftBins(NoteLimit)
 {
-    // Get frequency for each note with A4 standard
     for (int i = 0; i < NoteLimit; ++i)
-        _noteFrequencies[i] = FrequencyOfNote(i, _a4Frequency);
-
-    // Get the bin containing each note
-    size_t note = 0;
-    for (size_t bin = 0; bin < fftWindowSize; ++bin)
     {
-        FftwReal binMaxFrequency = FFTW_REAL(bin + 1) * _binRange;
-        for (; note < NoteLimit; ++note)
-        {
-            FftwReal noteFrequency = _noteFrequencies[note];
-            if (noteFrequency < binMaxFrequency)
-                _noteFftBins[note] = bin;
-            else
-            {
-                _noteFftBins[note] = bin + 1;
-                break;
-            }
-        }
+        _noteFrequencies[i] = FrequencyOfNote(i, _a4Frequency);
+        _noteFftBins[i] = _audioFft.GetBinForFrequency(_noteFrequencies[i]);
     }
 }
 

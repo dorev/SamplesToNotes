@@ -9,19 +9,23 @@ namespace SamplesToNotes
 AudioFft::AudioFft(size_t windowSize, FftwReal samplingRate)
     : _windowSize(windowSize)
     , _samplingRate(samplingRate)
-    , _plan(FftwDftPlan(_windowSize, _inputBuffer, _outputBuffer, FFTW_ESTIMATE))
+    , _binRange(samplingRate / static_cast<FftwReal>(GetInputBufferSize()))
+    , _plan(FftwDftPlan(static_cast<int>(_windowSize), _inputBuffer, _outputBuffer, FFTW_ESTIMATE))
     , _inputBuffer(nullptr)
     , _outputBuffer(nullptr)
-    , _binCenterFrequencies(GetOutputBufferSize(), 0.0)
+    , _binFrequencies(GetOutputBufferSize())
 {
     // Allocate arrays
     _inputBuffer = reinterpret_cast<FftwReal*>(FftwMalloc(sizeof(FftwReal) * GetInputBufferSize()));
     _outputBuffer = reinterpret_cast<FftwComplex*>(FftwMalloc(sizeof(FftwComplex) * GetOutputBufferSize()));
 
     // Set bins center frequency values
-    FftwReal binHzRange = samplingRate / GetInputBufferSize();
     for (size_t i = 0; i < GetOutputBufferSize(); ++i)
-        _binCenterFrequencies[i] = (i * binHzRange) + (binHzRange / 2);
+    {
+        _binFrequencies[i].low = i * _binRange;
+        _binFrequencies[i].center = (i * _binRange) + (_binRange / 2);
+        _binFrequencies[i].high = (i + 1) * _binRange;
+    }
 }
 
 AudioFft::~AudioFft()
@@ -43,6 +47,12 @@ size_t AudioFft::GetWindowSize() const
 {
     return _windowSize;
 }
+
+FftwReal AudioFft::GetBinRange() const
+{
+    return _binRange;
+}
+
 size_t AudioFft::GetInputBufferSize() const
 {
     return _windowSize;
@@ -53,12 +63,12 @@ size_t AudioFft::GetOutputBufferSize() const
     return (_windowSize / 2) + 1;
 }
 
-FftwReal* AudioFft::GetInputBufferPointer()
+FftwReal* AudioFft::GetInputBuffer()
 {
     return _inputBuffer;
 }
 
-FftwComplex* AudioFft::GetOutputBufferPointer() const
+FftwComplex* AudioFft::GetOutputBuffer() const
 {
     return _outputBuffer;
 }
@@ -75,14 +85,25 @@ void AudioFft::Execute(FftwReal* buffer)
     FftwExecuteDft(_plan, buffer, _outputBuffer);
 }
 
-BinFrequencyValue AudioFft::GetTopBin() const
+size_t AudioFft::GetBinForFrequency(FftwReal frequency) const
+{
+    for (size_t bin = 0; bin < GetOutputBufferSize(); ++bin)
+    {
+        if (frequency >= _binFrequencies[bin].low
+            && frequency < _binFrequencies[bin].high)
+            return bin;
+    }
+    throw "Requested frequency is not within FFT range";
+}
+
+BinData AudioFft::GetTopBin() const
 {
     return GetTopBins(1)[0];
 }
 
-std::vector<BinFrequencyValue> AudioFft::GetTopBins(size_t topResults) const
+std::vector<BinData> AudioFft::GetTopBins(size_t topResults) const
 {
-    std::vector<BinFrequencyValue> results(topResults, {0, 0, 0});
+    std::vector<BinData> results(topResults, {0, 0, 0});
 
     // Scan whole output buffer
     for (size_t bin = 0; bin < GetOutputBufferSize(); ++bin)
@@ -91,7 +112,7 @@ std::vector<BinFrequencyValue> AudioFft::GetTopBins(size_t topResults) const
         for (size_t i = 0; i < topResults; ++i)
         {
             FftwReal value = _outputBuffer[bin][0];
-            BinFrequencyValue& result = results[i];
+            BinData& result = results[i];
             if (value > result.value)
             {
                 // Shift right lower values
@@ -99,9 +120,9 @@ std::vector<BinFrequencyValue> AudioFft::GetTopBins(size_t topResults) const
                     results[j] = results[j - 1];
 
                 // Insert higher result
-                result.bin = bin;
-                result.frequency = _binCenterFrequencies[bin];
+                result.number = bin;
                 result.value = value;
+                result.frequency = _binFrequencies[bin];
                 break;
             }
         }
@@ -109,9 +130,9 @@ std::vector<BinFrequencyValue> AudioFft::GetTopBins(size_t topResults) const
     return results;
 }
 
-const std::vector<FftwReal>& AudioFft::GetBinFrequencies() const
+const std::vector<BinFrequency>& AudioFft::GetBinFrequencies() const
 {
-    return _binCenterFrequencies;
+    return _binFrequencies;
 }
 
 }
